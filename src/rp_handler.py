@@ -192,6 +192,7 @@ def upload_images(images, workflow):
     upload_errors = []
 
     print(f"runpod-worker-comfy - image(s) upload")
+    print(f"runpod-worker-comfy - image(s) upload")
 
     for image in images:
         name = image["name"]
