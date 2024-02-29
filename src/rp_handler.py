@@ -2,6 +2,7 @@ import runpod
 import json
 import urllib.request
 import urllib.parse
+from urllib.parse import urlparse
 import time
 import os
 import requests
@@ -99,6 +100,18 @@ def check_server(url, retries=50, delay=500):
     )
     return False
 
+def is_image_url(url):
+    """Check if the string is a valid URL."""
+    parsed_url = urlparse(url)
+    return bool(parsed_url.scheme) and bool(parsed_url.netloc)
+
+def fetch_and_encode_image(url):
+    """Fetch an image from a URL and encode it to base64."""
+    response = requests.get(url)
+    if response.status_code == 200:
+        return base64.b64encode(response.content).decode('utf-8')
+    else:
+        return None
 
 def upload_images(images):
     """
@@ -122,6 +135,16 @@ def upload_images(images):
     for image in images:
         name = image["name"]
         image_data = image["image"]
+
+        # Check if image_data is an URL
+        if is_image_url(image_data):
+            # Fetch and encode the image
+            image_data = fetch_and_encode_image(image_data)
+            if image_data is None:
+                upload_errors.append(f"Error fetching {name}")
+                continue
+
+
         blob = base64.b64decode(image_data)
 
         # Prepare the form data
