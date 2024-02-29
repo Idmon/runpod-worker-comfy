@@ -194,10 +194,11 @@ def upload_images(images, workflow):
     print(f"runpod-worker-comfy - image(s) upload")
 
     for image in images:
-        print(image)
         name = image["name"]
         image_data = image["image"]
         dynamic_resize = image.get("dynamic_resize", False)
+
+        print(f"BELANGRIJK - " + name)
 
         # Check if image_data is an URL
         if is_image_url(image_data):
