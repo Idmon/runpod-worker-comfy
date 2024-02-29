@@ -146,10 +146,8 @@ def adjust_node_dimensions(workflow, dynamic_resize, original_width, original_he
             inputs = step_details.get("inputs", {})
             if mapping_width in inputs:
                 inputs[mapping_width] = new_width
-                print(f"runpod-worker-comfy - set width: " + new_width)
             if mapping_height in inputs:
                 inputs[mapping_height] = new_height
-                print(f"runpod-worker-comfy - set height: " + new_height)
 
 
 def is_image_url(url):
@@ -192,14 +190,11 @@ def upload_images(images, workflow):
     upload_errors = []
 
     print(f"runpod-worker-comfy - image(s) upload")
-    print(f"runpod-worker-comfy - image(s) upload")
 
     for image in images:
         name = image["name"]
         image_data = image["image"]
         dynamic_resize = image.get("dynamic_resize", False)
-
-        print(f"BELANGRIJK - " + name)
 
         # Check if image_data is an URL
         if is_image_url(image_data):
