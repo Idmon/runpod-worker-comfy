@@ -184,7 +184,11 @@ def upload_images(images, workflow):
         list: A list of responses from the server for each image upload.
     """
     if not images:
-        return {"status": "success", "message": "No images to upload", "details": []}
+        return {
+            "status": "success",
+            "message": "No images to upload",
+            "details": [],
+        }, workflow
 
     responses = []
     upload_errors = []
