@@ -101,6 +101,50 @@ def check_server(url, retries=50, delay=500):
     )
     return False
 
+def adjust_node_dimensions(workflow, dynamic_resize, original_width, original_height):
+    """
+    Adjusts the dimensions of certain workflow nodes based on the dynamic_resize configuration,
+    scaling down proportionally if necessary.
+
+    Args:
+    - workflow (dict): The workflow configuration.
+    - dynamic_resize (dict): The dynamic resize configuration with meta_title, mapping, and dimension constraints.
+    - original_width (int): The original width of the input.
+    - original_height (int): The original height of the input.
+
+    Returns:
+    - None: The function modifies the workflow in place.
+    """
+    target_title = dynamic_resize.get("meta_title")
+    mapping_width = dynamic_resize.get("mapping_width")
+    mapping_height = dynamic_resize.get("mapping_height")
+    max_width = dynamic_resize.get("max_width")
+    max_height = dynamic_resize.get("max_height")
+
+    # Calculate aspect ratio of the original dimensions
+    aspect_ratio = original_width / original_height
+
+    # Calculate the new dimensions within the allowed constraints, preserving the aspect ratio
+    if original_width > max_width or original_height > max_height:
+        if (max_width / aspect_ratio) <= max_height:
+            new_width = max_width
+            new_height = int(max_width / aspect_ratio)
+        else:
+            new_width = int(max_height * aspect_ratio)
+            new_height = max_height
+    else:
+        new_width = original_width
+        new_height = original_height
+
+    for step_id, step_details in workflow.items():
+        meta_title = step_details.get("_meta", {}).get("title")
+        if meta_title == target_title:
+            inputs = step_details.get("inputs", {})
+            if mapping_width in inputs:
+                inputs[mapping_width] = new_width
+            if mapping_height in inputs:
+                inputs[mapping_height] = new_height
+
 def is_image_url(url):
     """Check if the string is a valid URL."""
     parsed_url = urlparse(url)
@@ -143,19 +187,23 @@ def upload_images(images, workflow):
     for image in images:
         name = image["name"]
         image_data = image["image"]
-        dynamic_resize = image["dynamic_resize"]
+        dynamic_resize = image.get("dynamic_resize", False)
 
         # Check if image_data is an URL
         if is_image_url(image_data):
             # Fetch and encode the image
             image_data, width, height = fetch_encode_image(image_data)
 
+            if dynamic_resize:
+                adjust_node_dimensions(workflow, dynamic_resize, width, height)
+            
             if image_data is None:
                 upload_errors.append(f"Error fetching {name}")
                 continue
 
 
         blob = base64.b64decode(image_data)
+        
 
         # Prepare the form data
         files = {
