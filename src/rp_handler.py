@@ -3,6 +3,7 @@ import json
 import urllib.request
 import urllib.parse
 from urllib.parse import urlparse
+from PIL import Image
 import time
 import os
 import requests
@@ -105,15 +106,22 @@ def is_image_url(url):
     parsed_url = urlparse(url)
     return bool(parsed_url.scheme) and bool(parsed_url.netloc)
 
-def fetch_and_encode_image(url):
-    """Fetch an image from a URL and encode it to base64."""
+def fetch_encode_image(url):
+    """Fetch an image from a URL, encode it to base64, and get its dimensions."""
     response = requests.get(url)
     if response.status_code == 200:
-        return base64.b64encode(response.content).decode('utf-8')
+        # Encode the fetched image data to base64
+        encoded_image = base64.b64encode(response.content).decode('utf-8')
+        
+        # Load the image using PIL to get dimensions
+        image = Image.open(BytesIO(response.content))
+        width, height = image.size
+        
+        return encoded_image, width, height
     else:
-        return None
+        return None, None, None
 
-def upload_images(images):
+def upload_images(images, workflow):
     """
     Upload a list of base64 encoded images to the ComfyUI server using the /upload/image endpoint.
 
@@ -135,11 +143,13 @@ def upload_images(images):
     for image in images:
         name = image["name"]
         image_data = image["image"]
+        dynamic_resize = image["dynamic_resize"]
 
         # Check if image_data is an URL
         if is_image_url(image_data):
             # Fetch and encode the image
-            image_data = fetch_and_encode_image(image_data)
+            image_data, width, height = fetch_encode_image(image_data)
+
             if image_data is None:
                 upload_errors.append(f"Error fetching {name}")
                 continue
@@ -226,9 +236,8 @@ def base64_encode(img_path):
 def process_output_images(outputs, job_id):
     """
     This function takes the "outputs" from image generation and the job ID,
-    then determines the correct way to return the image, either as a direct URL
-    to an AWS S3 bucket or as a base64 encoded string, depending on the
-    environment configuration.
+    then determines the correct way to return the image as a direct URL
+    to an Azure Storage.
 
     Args:
         outputs (dict): A dictionary containing the outputs from image generation,
@@ -237,17 +246,16 @@ def process_output_images(outputs, job_id):
 
     Returns:
         dict: A dictionary with the status ('success' or 'error') and the message,
-              which is either the URL to the image in the AWS S3 bucket or a base64
-              encoded string of the image. In case of error, the message details the issue.
+              which is either the URL to the image in the Azure Storage. 
+              In case of error, the message details the issue.
 
     The function works as follows:
     - It first determines the output path for the images from an environment variable,
       defaulting to "/comfyui/output" if not set.
     - It then iterates through the outputs to find the filenames of the generated images.
     - After confirming the existence of the image in the output folder, it checks if the
-      AWS S3 bucket is configured via the BUCKET_ENDPOINT_URL environment variable.
-    - If AWS S3 is configured, it uploads the image to the bucket and returns the URL.
-    - If AWS S3 is not configured, it encodes the image in base64 and returns the string.
+      Azure Storage is configured via the AZURE_STORAGE_KEY environment variable.
+    - It uploads the image to the Azure Container Storage and returns the URL.
     - If the image file does not exist in the output folder, it returns an error status
       with a message indicating the missing image file.
     """
@@ -336,7 +344,7 @@ def handler(job):
     )
 
     # Upload images if they exist
-    upload_result = upload_images(images)
+    upload_result = upload_images(images, workflow)
 
     if upload_result["status"] == "error":
         return upload_result
