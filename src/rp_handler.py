@@ -116,6 +116,9 @@ def adjust_node_dimensions(workflow, dynamic_resize, original_width, original_he
     Returns:
     - None: The function modifies the workflow in place.
     """
+
+    print(f"runpod-worker-comfy - adjust_node_dimensions()")
+
     target_title = dynamic_resize.get("meta_title")
     mapping_width = dynamic_resize.get("mapping_width")
     mapping_height = dynamic_resize.get("mapping_height")
@@ -143,8 +146,10 @@ def adjust_node_dimensions(workflow, dynamic_resize, original_width, original_he
             inputs = step_details.get("inputs", {})
             if mapping_width in inputs:
                 inputs[mapping_width] = new_width
+                print(f"runpod-worker-comfy - set width: " + new_width)
             if mapping_height in inputs:
                 inputs[mapping_height] = new_height
+                print(f"runpod-worker-comfy - set height: " + new_height)
 
 
 def is_image_url(url):
@@ -395,6 +400,7 @@ def handler(job):
 
     # Upload images if they exist
     upload_result, workflow = upload_images(images, workflow)
+    print(workflow)
 
     if upload_result["status"] == "error":
         return upload_result
