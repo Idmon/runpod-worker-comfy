@@ -101,6 +101,7 @@ def check_server(url, retries=50, delay=500):
     )
     return False
 
+
 def adjust_node_dimensions(workflow, dynamic_resize, original_width, original_height):
     """
     Adjusts the dimensions of certain workflow nodes based on the dynamic_resize configuration,
@@ -115,6 +116,9 @@ def adjust_node_dimensions(workflow, dynamic_resize, original_width, original_he
     Returns:
     - None: The function modifies the workflow in place.
     """
+
+    print(f"runpod-worker-comfy - adjust_node_dimensions()")
+
     target_title = dynamic_resize.get("meta_title")
     mapping_width = dynamic_resize.get("mapping_width")
     mapping_height = dynamic_resize.get("mapping_height")
@@ -145,25 +149,28 @@ def adjust_node_dimensions(workflow, dynamic_resize, original_width, original_he
             if mapping_height in inputs:
                 inputs[mapping_height] = new_height
 
+
 def is_image_url(url):
     """Check if the string is a valid URL."""
     parsed_url = urlparse(url)
     return bool(parsed_url.scheme) and bool(parsed_url.netloc)
+
 
 def fetch_encode_image(url):
     """Fetch an image from a URL, encode it to base64, and get its dimensions."""
     response = requests.get(url)
     if response.status_code == 200:
         # Encode the fetched image data to base64
-        encoded_image = base64.b64encode(response.content).decode('utf-8')
-        
+        encoded_image = base64.b64encode(response.content).decode("utf-8")
+
         # Load the image using PIL to get dimensions
         image = Image.open(BytesIO(response.content))
         width, height = image.size
-        
+
         return encoded_image, width, height
     else:
         return None, None, None
+
 
 def upload_images(images, workflow):
     """
@@ -177,7 +184,11 @@ def upload_images(images, workflow):
         list: A list of responses from the server for each image upload.
     """
     if not images:
-        return {"status": "success", "message": "No images to upload", "details": []}
+        return {
+            "status": "success",
+            "message": "No images to upload",
+            "details": [],
+        }, workflow
 
     responses = []
     upload_errors = []
@@ -196,14 +207,12 @@ def upload_images(images, workflow):
 
             if dynamic_resize:
                 adjust_node_dimensions(workflow, dynamic_resize, width, height)
-            
+
             if image_data is None:
                 upload_errors.append(f"Error fetching {name}")
                 continue
 
-
         blob = base64.b64decode(image_data)
-        
 
         # Prepare the form data
         files = {
@@ -231,7 +240,7 @@ def upload_images(images, workflow):
         "status": "success",
         "message": "All images uploaded successfully",
         "details": responses,
-    }
+    }, workflow
 
 
 def queue_workflow(workflow):
@@ -294,7 +303,7 @@ def process_output_images(outputs, job_id):
 
     Returns:
         dict: A dictionary with the status ('success' or 'error') and the message,
-              which is either the URL to the image in the Azure Storage. 
+              which is either the URL to the image in the Azure Storage.
               In case of error, the message details the issue.
 
     The function works as follows:
@@ -392,7 +401,8 @@ def handler(job):
     )
 
     # Upload images if they exist
-    upload_result = upload_images(images, workflow)
+    upload_result, workflow = upload_images(images, workflow)
+    print(workflow)
 
     if upload_result["status"] == "error":
         return upload_result
