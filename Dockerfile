@@ -47,6 +47,7 @@ RUN pip3 install -r requirements.txt --default-timeout=100000
 WORKDIR /comfyui/custom_nodes
 
 RUN pip3 install -r ComfyUI-Impact-Pack/requirements.txt --default-timeout=100000
+RUN pip3 install -r ComfyUI-Impact-Pack/impact_subpack/requirements.txt --default-timeout=100000
 RUN pip3 install -r ComfyUI-Inspire-Pack/requirements.txt --default-timeout=100000
 RUN pip3 install -r ComfyUI-Frame-Interpolation/requirements-with-cupy.txt --default-timeout=100000
 RUN pip3 install -r efficiency-nodes-comfyui/requirements.txt --default-timeout=100000
